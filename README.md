@@ -65,17 +65,16 @@ screenshots/
 ## Screenshots
 
 ### Workflow
-<img width="1049" height="513" alt="image" src="https://github.com/user-attachments/assets/0dc79e79-7f2e-4e3c-a1b5-14a187594f09" />
 
-(Add workflow screenshot here)
+(<img width="1049" height="513" alt="image" src="https://github.com/user-attachments/assets/0dc79e79-7f2e-4e3c-a1b5-14a187594f09" />)
 
 ### Input Data
 
-(Add raw Excel screenshot here)
+(<img width="1105" height="553" alt="image" src="https://github.com/user-attachments/assets/42c40a8b-0a2d-4686-944d-3cb1f4a925c5" />)
 
 ### Output Data
 
-(Add cleaned Excel screenshot here)
+(<img width="940" height="480" alt="image" src="https://github.com/user-attachments/assets/c620ae88-4306-433d-b550-727f3d863996" />)
 
 ---
 
