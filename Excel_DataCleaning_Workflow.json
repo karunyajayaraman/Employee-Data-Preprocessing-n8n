@@ -1,0 +1,182 @@
+{
+  "name": "Excel_DataCleaning_Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst seen = new Set();\n\nreturn $input.all().filter(item => {\n\n  const key =\n    item.json.Employee_ID;\n\n  if (seen.has(key)) {\n    return false;\n  }\n\n  seen.add(key);\n\n  return true;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -80
+      ],
+      "id": "0386aa2e-3997-44c1-843d-a7a74a94f914",
+      "name": "Remove Duplicate Rows"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -576,
+        -80
+      ],
+      "id": "f3434f18-2ce1-4dbb-8fa6-832eb4a79738",
+      "name": "START - Data Cleaning"
+    },
+    {
+      "parameters": {
+        "fileSelector": "C:\\Users\\Admin\\.n8n-files\\n8n_data.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -384,
+        -80
+      ],
+      "id": "2ea5facd-1a3e-40f8-a738-3a1875d1ee3b",
+      "name": "Get Excel File"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -176,
+        -80
+      ],
+      "id": "efc044dd-7495-425e-8c90-c283ea9eda17",
+      "name": "XLSX -> JSON Format"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nconst cleaned = [];\n\nfor (const item of $input.all()) {\n\n  // Employee ID\n  item.json.Employee_ID = item.json.Employee_ID || 0;\n\n function cleanName(name) {\n\n  if (!name) return \"\";\n\n  return name\n    .toString()\n    .trim()\n\n    // Common substitutions\n    .replace(/@/g, \"a\")\n    .replace(/3/g, \"e\")\n\n    // Remove remaining special characters\n    .replace(/[^a-zA-Z\\s]/g, \"\")\n\n    // Proper Case\n    .toLowerCase()\n    .replace(/\\b\\w/g, char => char.toUpperCase());\n}\n\n// First Name\nitem.json.First_Name = cleanName(item.json.First_Name);\n\n// Last Name\nitem.json.Last_Name = cleanName(item.json.Last_Name);\n\n// Full Name\nconst fullName =\n  `${item.json.First_Name} ${item.json.Last_Name}`\n  .trim()\n  .replace(/\\s+/g, \" \");\n\nitem.json.Full_Name =\n  fullName || \"Unknown\";\n\n    // Remove original columns\n  delete item.json.First_Name;\n  delete item.json.Last_Name;\n\nitem.json.Address = item.json.Address\n  ? (() => {\n      let address = item.json.Address.toString().trim();\n\n      // Keep first 4 characters unchanged\n      let prefix = address.substring(0, 4);\n\n      // Apply replacements from 5th character onwards\n      let suffix = address.substring(4)\n        .replace(/@/g, \"a\")\n        .replace(/3/g, \"e\")\n        .replace(/[^a-zA-Z0-9\\s]/g, \"\");\n\n      return (prefix + suffix)\n        .toLowerCase()\n        .replace(/\\b\\w/g, char => char.toUpperCase());\n    })()\n  : \"Unknown\";\n\nconst validDepartments = [\n  \"marketing\",\n  \"Finance\",\n  \"IT\",\n  \"Admin\",\n  \"Sales\",\n  \"HR\",\n];\n\nlet dept = item.json.Department\n  ? item.json.Department.toString().trim()\n  : \"\";\n\nif (!dept) {\n  item.json.Department = \"Unknown\";\n} else {\n\n  // Normalize input for comparison\n  const normalizedDept = dept\n    .toLowerCase()\n    .replace(/[^a-z]/g, \"\");\n\n  let matchedDepartment = \"Unknown\";\n\n  for (const validDept of validDepartments) {\n\n    const normalizedValidDept = validDept\n      .toLowerCase()\n      .replace(/[^a-z]/g, \"\");\n\n    if (normalizedDept === normalizedValidDept) {\n      matchedDepartment = validDept;\n      break;\n    }\n  }\n\n  item.json.Department = matchedDepartment;\n}\n\n\nitem.json.Position = item.json.Position\n  ? item.json.Position\n      .toString()\n      .trim()\n\n      // Common replacements\n      .replace(/@/g, \"a\")\n      .replace(/3/g, \"e\")\n\n      // Remove remaining special characters\n      .replace(/[^a-zA-Z\\s]/g, \"\")\n\n      // Convert to Proper Case\n      .toLowerCase()\n      .replace(/\\b\\w/g, char => char.toUpperCase())\n\n  : \"Unknown\";\n  \n  // email id\n  \nfunction cleanEmail(email) {\n  if (!email) return \"unknown\";\n  email = email.toString().trim().toLowerCase();\n  const lastAt = email.lastIndexOf(\"@\");\n  if (lastAt === -1) {\n    return \"unknown\";\n  }\n\n  let localPart = email.substring(0, lastAt);\n  let domainPart = email.substring(lastAt + 1);\n\n  localPart = localPart\n    .replace(/@/g, \"a\")\n    .replace(/3/g, \"e\");\n\n  domainPart = domainPart\n    .replace(/@/g, \"a\")\n    .replace(/3/g, \"e\");\n\n  return `${localPart}@${domainPart}`;\n}\n\nitem.json.Email_ID = cleanEmail(item.json.Email_ID);\n  \n  // Phone Number\n  item.json.Phone_No = item.json.Phone_No\n    ? item.json.Phone_No.toString().trim()\n    : \"Not Assigned\";\n\n  // Numeric Fields\n  item.json.Age = item.json.Age || 0;\n item.json.Salary = item.json.Salary\n  ? `₹${Number(item.json.Salary).toLocaleString('en-IN')}`\n  : \"₹0\";\n  item.json.Work_Hours_Per_Day = item.json.Work_Hours_Per_Day || 0;\n\n// Convert Excel serial date to DD-MM-YYYY\n\nif (item.json.Joining_Date) {\n\n  const excelDate = Number(item.json.Joining_Date);\n\n  const jsDate = new Date(\n    (excelDate - 25569) * 86400 * 1000\n  );\n\n  const day = String(jsDate.getUTCDate()).padStart(2, '0');\n  const month = String(jsDate.getUTCMonth() + 1).padStart(2, '0');\n  const year = jsDate.getUTCFullYear();\n\n  item.json.Joining_Date = `${day}-${month}-${year}`;\n\n} else {\n\n  item.json.Joining_Date = \"01-01-1900\";\n\n}\n\ncleaned.push({\n  json: {\n    Employee_ID: item.json.Employee_ID,\n    Full_Name: item.json.Full_Name,\n    Phone_No: item.json.Phone_No,\n    Email_ID: item.json.Email_ID,\n    Address: item.json.Address,\n    Department: item.json.Department,\n    Position: item.json.Position,\n    Age: item.json.Age,\n    Salary: item.json.Salary,\n    Joining_Date: item.json.Joining_Date,\n    Work_Hours_Per_Day: item.json.Work_Hours_Per_Day\n  }\n});\n}\n\nreturn cleaned;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -80
+      ],
+      "id": "dc054fbc-b318-4068-b9e0-97f8a03fd20e",
+      "name": "Cleaning Data"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -432,
+        128
+      ],
+      "id": "448002c5-a240-4cd1-abe6-78faebc7c3b8",
+      "name": "JSON-> XLSX Format"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "C:\\Users\\Admin\\.n8n-files\\result.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        128
+      ],
+      "id": "661cb638-346b-49a3-a5f1-7dcefdc756ac",
+      "name": "Final O/P File"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Remove Duplicate Rows": {
+      "main": [
+        [
+          {
+            "node": "JSON-> XLSX Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "START - Data Cleaning": {
+      "main": [
+        [
+          {
+            "node": "Get Excel File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Excel File": {
+      "main": [
+        [
+          {
+            "node": "XLSX -> JSON Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XLSX -> JSON Format": {
+      "main": [
+        [
+          {
+            "node": "Cleaning Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleaning Data": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicate Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON-> XLSX Format": {
+      "main": [
+        [
+          {
+            "node": "Final O/P File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4576515f-fd17-4ab9-9070-50328c83b985",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ac5498d1171b0bc9ea0a82994ec35660ac479581d8c00e864a4b921977064104"
+  },
+  "nodeGroups": [],
+  "id": "gaPufOsAIFSPiqQY",
+  "tags": []
+}
